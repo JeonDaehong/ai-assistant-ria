@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(pip install -r requirements.txt)",
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(ollama pull *)",
+      "Bash(ollama run *)",
+      "Bash(ollama list)",
+      "Read(**)",
+      "Write(modules/**)",
+      "Write(data/**)",
+      "Write(assets/**)",
+      "Write(main.py)",
+      "Write(config.py)",
+      "Write(requirements.txt)",
+      "Write(.claude/CLAUDE.md)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Write(.env)",
+      "Write(.gitignore)"
+    ]
+  }
+}

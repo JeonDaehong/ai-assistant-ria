@@ -1,0 +1,68 @@
+# ── 환경 변수 / 시크릿 ────────────────────────────────────
+.env
+.env.*
+!.env.example
+firebase-key.json
+*-key.json
+*-credentials.json
+secrets/
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# ── 가상환경 ──────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env/
+ENV/
+
+# ── 로그 ──────────────────────────────────────────────────
+logs/
+*.log
+
+# ── TTS 임시 파일 ──────────────────────────────────────────
+temp_tts.mp3
+*.mp3
+*.wav
+*.ogg
+
+# ── ML 모델 캐시 ───────────────────────────────────────────
+.cache/
+huggingface/
+*.pt
+*.pth
+*.bin
+*.ckpt
+*.safetensors
+
+# ── IDE / 에디터 ───────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── pytest / 테스트 캐시 ───────────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── OS ────────────────────────────────────────────────────
+desktop.ini
+$RECYCLE.BIN/
