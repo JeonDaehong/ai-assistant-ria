@@ -37,6 +37,12 @@ temp_tts.mp3
 *.wav
 *.ogg
 
+# ── ChromaDB 로컬 기억 DB ──────────────────────────────────
+data/memory/
+
+# ── Claude Code 로컬 설정 ──────────────────────────────────
+.claude/settings.local.json
+
 # ── ML 모델 캐시 ───────────────────────────────────────────
 .cache/
 huggingface/

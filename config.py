@@ -49,6 +49,10 @@ if IS_MAC:
 else:
     NAS_PATH: Path = Path(os.getenv("NAS_PATH", r"\\NAS"))
 
+# ── 메모리 DB ─────────────────────────────────────────────
+MEMORY_DIR: Path = Path(os.getenv("MEMORY_DIR", str(BASE_DIR / "data" / "memory")))
+MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+
 # ── Firebase ──────────────────────────────────────────────
 FIREBASE_KEY_PATH: Path = Path(os.getenv("FIREBASE_KEY_PATH", ""))
 
