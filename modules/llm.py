@@ -53,6 +53,15 @@ def query(
         "model": model,
         "messages": messages,
         "stream": False,
+        "keep_alive": -1,
+        "options": {
+            "num_predict": 128,
+            "num_ctx": 2048,
+            "temperature": 0.7,
+            "top_k": 20,
+            "top_p": 0.8,
+            "repeat_penalty": 1.1,
+        },
     }
 
     logger.debug("LLM 요청 | model={model} | prompt_len={n}", model=model, n=len(prompt))
@@ -104,6 +113,15 @@ def query_stream(
         "model": model,
         "messages": messages,
         "stream": True,
+        "keep_alive": -1,
+        "options": {
+            "num_predict": 128,
+            "num_ctx": 2048,
+            "temperature": 0.7,
+            "top_k": 20,
+            "top_p": 0.8,
+            "repeat_penalty": 1.1,
+        },
     }
 
     logger.debug("LLM 스트리밍 시작 | model={model}", model=model)

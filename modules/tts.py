@@ -293,19 +293,44 @@ def _iter_pcm_chunks(
 class StreamingPlayer:
     """스트리밍 응답을 받아 실시간으로 재생하는 플레이어.
 
-    사용법:
+    사용법 (단건):
         player = StreamingPlayer()
         player.play(response)   # 블로킹 (재생 완료까지)
+
+    사용법 (연속 재생 - 문장 사이 끊김 없음):
+        player.begin_session()
+        player.play(resp1)
+        player.play(resp2)
+        player.end_session()
+
         player.stop()           # 다른 스레드에서 호출하여 즉시 중단
     """
 
     def __init__(self) -> None:
         self._stop_event = threading.Event()
         self._stream: sd.RawOutputStream | None = None
+        self._in_session = False
+
+    def begin_session(self) -> None:
+        """연속 재생 세션을 시작한다. 세션 중에는 스트림을 닫지 않는다."""
+        self._in_session = True
+        self._stop_event.clear()
+
+    def end_session(self) -> None:
+        """연속 재생 세션을 종료하고 스트림을 정리한다."""
+        self._in_session = False
+        if self._stream is not None:
+            try:
+                self._stream.stop()
+                self._stream.close()
+            except Exception:
+                pass
+            self._stream = None
 
     def stop(self) -> None:
         """재생을 즉시 중단한다."""
         self._stop_event.set()
+        self._in_session = False
         if self._stream is not None:
             self._stream.abort()
         logger.info("재생 중단 요청됨")
@@ -313,11 +338,15 @@ class StreamingPlayer:
     def play(self, resp: requests.Response) -> None:
         """스트리밍 응답을 청크 단위로 수신하며 실시간 재생한다.
 
+        세션 모드가 아니면 재생 후 스트림을 닫는다.
+        세션 모드이면 스트림을 유지하여 다음 play() 호출 시 재사용한다.
+
         Args:
             resp: synthesize_stream()이 반환한 스트리밍 응답
         """
-        self._stop_event.clear()
-        self._stream = None
+        if not self._in_session:
+            self._stop_event.clear()
+            self._stream = None
         total_bytes = 0
         dtype_map = {1: "int8", 2: "int16", 4: "int32"}
 
@@ -343,7 +372,7 @@ class StreamingPlayer:
             if not self._stop_event.is_set():
                 raise RuntimeError(f"스트리밍 재생 오류: {e}") from e
         finally:
-            if self._stream is not None:
+            if not self._in_session and self._stream is not None:
                 if not self._stop_event.is_set():
                     self._stream.stop()
                 self._stream.close()
@@ -362,6 +391,20 @@ def stop() -> None:
     _player.stop()
 
 
+def begin_session() -> None:
+    """연속 재생 세션을 시작한다.
+
+    세션 중에는 sounddevice 스트림이 문장 사이에 유지되어
+    끊김 없이 연속 재생된다. 반드시 end_session()으로 닫아야 한다.
+    """
+    _player.begin_session()
+
+
+def end_session() -> None:
+    """연속 재생 세션을 종료하고 오디오 스트림을 정리한다."""
+    _player.end_session()
+
+
 # ── 통합 인터페이스 ───────────────────────────────────────
 
 def speak(text: str) -> None:
@@ -377,6 +420,16 @@ def speak(text: str) -> None:
         ValueError: text가 비어 있거나 공백만인 경우
     """
     ensure_server()
+    resp = synthesize_stream(text)
+    _player.play(resp)
+
+
+def speak_direct(text: str) -> None:
+    """서버 체크 없이 바로 합성+재생한다.
+
+    begin_session() 이후 반복 호출에 적합하다.
+    ensure_server()를 호출자가 미리 해 둬야 한다.
+    """
     resp = synthesize_stream(text)
     _player.play(resp)
 
