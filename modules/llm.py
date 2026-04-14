@@ -53,6 +53,10 @@ def query(
         "model": model,
         "messages": messages,
         "stream": False,
+        "options": {
+            "num_gpu": 999,   # 모든 레이어 GPU에 올림
+            "num_ctx": 2048,  # 컨텍스트 축소로 속도 향상
+        },
     }
 
     logger.debug("LLM 요청 | model={model} | prompt_len={n}", model=model, n=len(prompt))
@@ -104,6 +108,10 @@ def query_stream(
         "model": model,
         "messages": messages,
         "stream": True,
+        "options": {
+            "num_gpu": 999,
+            "num_ctx": 2048,
+        },
     }
 
     logger.debug("LLM 스트리밍 시작 | model={model}", model=model)
