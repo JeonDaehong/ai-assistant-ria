@@ -24,9 +24,8 @@ import modules.emotion as emotion
 import modules.memory as memory
 import modules.stt as stt
 import modules.tts as tts
-from modules.llm import is_ollama_running
+from modules.llm import is_ollama_running, query, query_stream
 from modules.scheduler import get_scheduler, init_scheduler
-from modules.tools import query_with_tools
 
 
 # ── 파이프라인 상수 ───────────────────────────────────────────────────────────
@@ -228,18 +227,51 @@ def _clean_response(text: str) -> str:
     return cleaned
 
 
-def _step_llm(user_text: str, system_prompt: str) -> Optional[str]:
-    """Tool Calling을 포함한 LLM 쿼리를 실행하고 응답 텍스트를 반환한다."""
-    # 이력은 최근 HISTORY_LIMIT턴(양방향)만 전달
+_SENTENCE_DELIMITERS = re.compile(r"(?<=[.!?。！？~])\s*|(?<=\n)")
+
+
+def _step_llm_stream_tts(user_text: str, system_prompt: str) -> Optional[str]:
+    """LLM 스트리밍 응답을 문장 단위로 TTS에 즉시 전달한다.
+
+    첫 문장이 완성되는 즉시 TTS를 시작하여 체감 지연을 최소화한다.
+    """
     recent_history = _history[-(HISTORY_LIMIT * 2):] if _history else None
 
     try:
-        response = query_with_tools(
+        tts.ensure_server()
+    except Exception as e:
+        logger.error("TTS 서버 준비 실패: {e}", e=e)
+
+    buf = ""
+    full_response = ""
+
+    try:
+        for token in query_stream(
             prompt=user_text,
             system=system_prompt,
             history=recent_history,
-        )
-        return response
+        ):
+            buf += token
+            full_response += token
+
+            parts = _SENTENCE_DELIMITERS.split(buf)
+            if len(parts) > 1:
+                sentence = parts[0].strip()
+                buf = parts[-1]
+                if sentence:
+                    logger.debug("스트리밍 TTS | sentence={s}", s=sentence[:40])
+                    try:
+                        tts.speak(sentence)
+                    except Exception as e:
+                        logger.error("TTS 실패: {e}", e=e)
+
+        leftover = buf.strip()
+        if leftover:
+            try:
+                tts.speak(leftover)
+            except Exception as e:
+                logger.error("TTS 실패: {e}", e=e)
+
     except ConnectionError as e:
         logger.error("Ollama 미실행: {e}", e=e)
         return "죄송해요, 지금 LLM 서버에 연결할 수 없어요."
@@ -247,13 +279,7 @@ def _step_llm(user_text: str, system_prompt: str) -> Optional[str]:
         logger.error("LLM 오류: {e}", e=e)
         return None
 
-
-def _step_tts(text: str) -> None:
-    """응답 텍스트를 TTS로 합성·재생한다."""
-    try:
-        tts.speak(text)
-    except Exception as e:
-        logger.error("TTS 실패: {e}", e=e)
+    return full_response or None
 
 
 def _step_character(emotion_result: Optional[emotion.EmotionResult]) -> None:
@@ -297,19 +323,15 @@ def run_pipeline_turn(user_text: str) -> Optional[str]:
     # 3. 시스템 프롬프트 조합
     system_prompt = _build_system_prompt(emotion_hint, memory_context)
 
-    # 4. LLM (+Tool Calling)
-    response = _step_llm(user_text, system_prompt)
+    # 4. LLM 스트리밍 + TTS 파이프라이닝 (문장 단위 즉시 재생)
+    response = _step_llm_stream_tts(user_text, system_prompt)
     if not response:
         return None
 
-    # 메타 태그 제거 (TTS·출력용, 기억 저장·이력에도 정제된 텍스트 사용)
     response = _clean_response(response)
     logger.info("LLM 응답 (앞 80자): {text}", text=response[:80])
 
-    # 5. TTS
-    _step_tts(response)
-
-    # 6. 캐릭터 모션
+    # 5. 캐릭터 모션
     _step_character(emotion_result)
 
     # 7. 기억 저장
@@ -403,7 +425,10 @@ def main(text_mode: bool = False) -> None:
             continue
 
         if user_text.lower().strip() in _EXIT_KEYWORDS:
-            _step_tts("안녕히 계세요!")
+            try:
+                tts.speak("안녕히 계세요!")
+            except Exception:
+                pass
             print("\nRia: 안녕히 계세요!\n")
             break
 

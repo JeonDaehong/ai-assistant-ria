@@ -1,0 +1,40 @@
+# ── 핵심 ──────────────────────────────────────────────
+loguru
+python-dotenv
+requests
+numpy
+
+# ── TTS (GPT-SoVITS 스트리밍 재생) ───────────────────
+sounddevice
+
+# ── STT (faster-whisper + VAD) ───────────────────────
+faster-whisper
+webrtcvad-wheels
+
+# ── LLM (Ollama 클라이언트) ──────────────────────────
+# requests 로 직접 호출 (별도 패키지 없음)
+
+# ── 감정 분석 ────────────────────────────────────────
+transformers
+
+# ── 기억 DB (벡터 검색) ──────────────────────────────
+chromadb
+sentence-transformers
+
+# ── 스케줄러 ─────────────────────────────────────────
+APScheduler
+
+# ── 캐릭터 모션 (VTube Studio) ───────────────────────
+websockets
+
+# ── 도구 (웹 검색, 알림) ─────────────────────────────
+duckduckgo-search
+
+# ── 선택: Firebase 푸시 ──────────────────────────────
+# firebase-admin
+
+# ── 선택: Windows 토스트 알림 ────────────────────────
+# win10toast
+
+# ── PyTorch (CUDA 버전은 환경에 맞게 설치) ────────────
+# pip install torch --index-url https://download.pytorch.org/whl/cu121

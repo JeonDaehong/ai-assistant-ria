@@ -72,9 +72,6 @@ def _make_embedding_function():
         SentenceTransformerEmbeddingFunction,
     )
 
-    # DEVICE가 "cuda"면 인덱스 0, "mps"/"cpu"면 그대로 전달
-    device_arg = 0 if DEVICE == "cuda" else DEVICE
-
     logger.info(
         "임베딩 모델 로드 | model={model} | device={device}",
         model=EMBEDDING_MODEL,
@@ -82,7 +79,7 @@ def _make_embedding_function():
     )
     ef = SentenceTransformerEmbeddingFunction(
         model_name=EMBEDDING_MODEL,
-        device=str(device_arg),
+        device=DEVICE,
     )
     logger.info("임베딩 모델 로드 완료")
     return ef
