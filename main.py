@@ -100,12 +100,12 @@ def _init_character() -> None:
 
 
 def _init_tts() -> None:
-    """GPT-SoVITS 가중치를 API 서버에 로드한다."""
+    """GPT-SoVITS 서버 기동 및 가중치를 로드한다."""
     try:
-        tts.load_models()
-        logger.info("TTS 모델 로드 완료")
+        tts.ensure_server()
+        logger.info("TTS 서버 준비 완료")
     except Exception as e:
-        logger.warning("TTS 모델 로드 실패 (TTS 비활성화될 수 있음): {e}", e=e)
+        logger.warning("TTS 초기화 실패 (TTS 비활성화될 수 있음): {e}", e=e)
 
 
 def _init_models() -> None:
