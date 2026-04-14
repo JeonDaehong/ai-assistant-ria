@@ -66,7 +66,7 @@ XTTS_LANGUAGE: str = os.getenv("XTTS_LANGUAGE", "ko")
 _default_sovits_dir = str(BASE_DIR.parent / "GPT-SoVITS" / "GPT-SoVITS-v2pro-20250604")
 SOVITS_DIR: Path = Path(os.getenv("SOVITS_DIR", _default_sovits_dir))
 SOVITS_API_URL: str = os.getenv("SOVITS_API_URL", "http://127.0.0.1:9880")
-SOVITS_REF_AUDIO: Path = Path(os.getenv("SOVITS_REF_AUDIO", str(BASE_DIR / "sound_model" / "segment_0000.wav")))
+SOVITS_REF_AUDIO: Path = Path(os.getenv("SOVITS_REF_AUDIO", str(BASE_DIR / "sound_model" / "ref_3sec.wav")))
 SOVITS_REF_TEXT: str = os.getenv("SOVITS_REF_TEXT", "")
 SOVITS_LANG: str = os.getenv("SOVITS_LANG", "ko")
 SOVITS_GPT_WEIGHTS: str = os.getenv(
@@ -79,6 +79,19 @@ SOVITS_WEIGHTS: str = os.getenv(
     str(SOVITS_DIR / "GPT_SoVITS" / "pretrained_models"
         / "gsv-v2final-pretrained" / "s2G2333k.pth"),
 )
+    str(SOVITS_DIR / "GPT_SoVITS" / "pretrained_models" / "gsv-v2final-pretrained" / "s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"),
+)
+SOVITS_WEIGHTS: str = os.getenv(
+    "SOVITS_WEIGHTS",
+    str(SOVITS_DIR / "GPT_SoVITS" / "pretrained_models" / "gsv-v2final-pretrained" / "s2G2333k.pth"),
+)
+
+# ── Obsidian ──────────────────────────────────────────────
+if IS_WINDOWS:
+    _default_obsidian = r"C:\Users\user\Documents\Obsidian Vault"
+else:
+    _default_obsidian = str(Path.home() / "Documents" / "Obsidian Vault")
+OBSIDIAN_VAULT_PATH: Path = Path(os.getenv("OBSIDIAN_VAULT_PATH", _default_obsidian))
 
 # ── 로그 ──────────────────────────────────────────────────
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG" if not IS_MAC else "INFO")

@@ -56,6 +56,7 @@ def query(
         "keep_alive": -1,
         "options": {
             "num_predict": 128,
+            "num_gpu": 999,
             "num_ctx": 2048,
             "temperature": 0.7,
             "top_k": 20,
@@ -116,6 +117,7 @@ def query_stream(
         "keep_alive": -1,
         "options": {
             "num_predict": 128,
+            "num_gpu": 999,
             "num_ctx": 2048,
             "temperature": 0.7,
             "top_k": 20,

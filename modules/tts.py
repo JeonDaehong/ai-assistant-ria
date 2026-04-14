@@ -67,10 +67,15 @@ def _start_server() -> subprocess.Popen:
     runtime_python = SOVITS_DIR / "runtime" / "python.exe"
     python_exe = str(runtime_python) if runtime_python.exists() else "python"
 
-    inner_cmd = f'$env:PYTHONIOENCODING="utf-8"; cd "{SOVITS_DIR}"; & "{python_exe}" api_v2.py -a 127.0.0.1 -p 9880'
+    log_path = SOVITS_DIR / "api_v2.log"
+    inner_cmd = (
+        f'$env:PYTHONIOENCODING="utf-8"; '
+        f'cd "{SOVITS_DIR}"; '
+        f'& "{python_exe}" api_v2.py -a 127.0.0.1 -p 9880 *>> "{log_path}" 2>&1'
+    )
     cmd = ["powershell", "-NoExit", "-Command", inner_cmd]
 
-    logger.info("GPT-SoVITS 서버 기동 (새 PowerShell 창) | dir={d}", d=SOVITS_DIR)
+    logger.info("GPT-SoVITS 서버 기동 | log={log}", log=log_path)
 
     proc = subprocess.Popen(
         cmd,
@@ -158,29 +163,17 @@ _ref_cache: dict | None = None
 
 
 def _get_refs() -> tuple[str, list[str]]:
-    """레퍼런스 파일 경로를 캐싱하여 반환한다.
-
-    SOVITS_REF_AUDIO의 상위 디렉터리에 wav 파일이 여러 개이면
-    첫 번째를 main, 나머지를 aux로 사용한다.
-    """
+    """레퍼런스 오디오 경로를 반환한다. SOVITS_REF_AUDIO만 사용."""
     global _ref_cache
     if _ref_cache is None:
-        ref_dir = SOVITS_REF_AUDIO.parent
-        all_wavs = sorted(ref_dir.glob("*.wav")) if ref_dir.exists() else []
-        if all_wavs:
-            main = str(all_wavs[0])
-            aux = [str(f) for f in all_wavs[1:]]
-        else:
-            main = str(SOVITS_REF_AUDIO)
-            aux = []
-        _ref_cache = {"main": main, "aux": aux}
+        _ref_cache = {"main": str(SOVITS_REF_AUDIO), "aux": []}
     return _ref_cache["main"], _ref_cache["aux"]
 
 
 # ── 합성 (스트리밍) ───────────────────────────────────────
 
 def synthesize_stream(text: str) -> requests.Response:
-    """GPT-SoVITS API에 스트리밍 모드로 합성을 요청하고, 스트림 응답을 반환한다.
+    """GPT-SoVITS API에 스트리밍 모드로 합성을 요청하고 스트림 응답을 반환한다.
 
     Args:
         text: 합성할 텍스트 (빈 문자열 불가)
@@ -207,13 +200,13 @@ def synthesize_stream(text: str) -> requests.Response:
         "text_split_method": "cut0",
         "batch_size": 1,
         "media_type": "wav",
-        "streaming_mode": True,
+        "streaming_mode": 2,
     }
 
     logger.debug(
-        "TTS 스트리밍 합성 요청 | text_len={n} | endpoint={url}",
+        "TTS 스트리밍 합성 요청 | text_len={n} | ref={r}",
         n=len(text),
-        url=f"{SOVITS_API_URL}/tts",
+        r=ref_main,
     )
 
     try:
@@ -284,8 +277,8 @@ def _iter_pcm_chunks(
             else:
                 yield raw_chunk, sample_rate, channels, sample_width
 
-    except requests.exceptions.ChunkedEncodingError:
-        logger.debug("스트림 종료 (ChunkedEncodingError)")
+    except requests.exceptions.ChunkedEncodingError as e:
+        logger.warning("ChunkedEncodingError: {e}", e=e)
 
 
 # ── 재생 (스트리밍) ───────────────────────────────────────
@@ -408,7 +401,7 @@ def end_session() -> None:
 # ── 통합 인터페이스 ───────────────────────────────────────
 
 def speak(text: str) -> None:
-    """텍스트를 스트리밍으로 합성하면서 실시간 재생한다.
+    """텍스트를 합성하여 재생한다.
 
     서버가 꺼져 있으면 자동 기동한다.
     다른 스레드에서 stop()을 호출하면 재생을 즉시 중단할 수 있다.

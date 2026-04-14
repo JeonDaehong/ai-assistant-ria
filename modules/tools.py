@@ -98,7 +98,54 @@ set_alarm_tool_def: dict = {
     },
 }
 
-TOOLS: list[dict] = [file_search_tool_def, web_search_tool_def, set_alarm_tool_def]
+obsidian_search_tool_def: dict = {
+    "type": "function",
+    "function": {
+        "name": "obsidian_search",
+        "description": "Obsidian 볼트(지식 저장소)에서 노트를 검색합니다. 사용자가 메모, 지식, 기록을 물어볼 때 사용하세요.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "검색어",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "반환할 최대 결과 수 (기본 5)",
+                    "default": 5,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+}
+
+obsidian_read_tool_def: dict = {
+    "type": "function",
+    "function": {
+        "name": "obsidian_read",
+        "description": "Obsidian 볼트에서 특정 노트의 전체 내용을 읽습니다.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "note_path": {
+                    "type": "string",
+                    "description": "노트 경로 또는 제목 (예: '일기/2024-01-01' 또는 '회의록')",
+                },
+            },
+            "required": ["note_path"],
+        },
+    },
+}
+
+TOOLS: list[dict] = [
+    file_search_tool_def,
+    web_search_tool_def,
+    set_alarm_tool_def,
+    obsidian_search_tool_def,
+    obsidian_read_tool_def,
+]
 
 
 # ── Tool 1: 파일 탐색 ──────────────────────────────────────────────────────────
@@ -276,12 +323,47 @@ def set_alarm(time: str, label: str = "알람") -> dict:
     return result
 
 
+# ── Tool 4: Obsidian 검색 ─────────────────────────────────────────────────────
+
+def obsidian_search(query: str, max_results: int = 5) -> list[dict]:
+    """Obsidian 볼트에서 쿼리로 노트를 검색한다.
+
+    Args:
+        query: 검색어
+        max_results: 반환할 최대 결과 수 (기본 5)
+
+    Returns:
+        [{"path": str, "title": str, "snippet": str}, ...] 리스트.
+        볼트 없음 또는 결과 없음 시 빈 리스트.
+    """
+    from modules.obsidian import search_notes
+    return search_notes(query, max_results)
+
+
+def obsidian_read(note_path: str) -> dict:
+    """Obsidian 볼트에서 노트 내용을 읽는다.
+
+    Args:
+        note_path: 노트 경로 또는 제목
+
+    Returns:
+        {"path": str, "content": str} 또는 {"error": str}
+    """
+    from modules.obsidian import get_note
+    content = get_note(note_path)
+    if content is None:
+        return {"error": f"노트를 찾을 수 없습니다: {note_path}"}
+    return {"path": note_path, "content": content}
+
+
 # ── Tool 디스패처 ───────────────────────────────────────────────────────────────
 
 _TOOL_REGISTRY: dict = {
     "file_search": file_search,
     "web_search": web_search,
     "set_alarm": set_alarm,
+    "obsidian_search": obsidian_search,
+    "obsidian_read": obsidian_read,
 }
 
 
@@ -337,6 +419,10 @@ def _post_chat(messages: list[dict], model: str) -> dict:
         "model": model,
         "messages": messages,
         "stream": False,
+        "options": {
+            "num_gpu": 999,
+            "num_ctx": 2048,
+        },
     }
 
     try:
@@ -367,6 +453,13 @@ _TOOL_DETECTION_PROMPT: str = """당신은 Ria입니다. 사용자 질문에 답
 
 3. set_alarm — 지정 시각에 알람 설정 (HH:MM 24시간제)
    args: time(str, 필수), label(str, 기본 "알람")
+
+4. obsidian_search — Obsidian 볼트(개인 지식 저장소) 노트 검색
+   사용자가 메모, 기록, 지식, 노트를 물어볼 때 사용
+   args: query(str, 필수), max_results(int, 기본 5)
+
+5. obsidian_read — Obsidian 특정 노트 내용 전체 읽기
+   args: note_path(str, 필수) — 노트 제목 또는 경로
 
 [응답 규칙]
 - 도구가 필요하면: JSON 한 줄만 출력 (다른 텍스트 없이)
