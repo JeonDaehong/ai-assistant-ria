@@ -158,10 +158,22 @@ _ref_cache: dict | None = None
 
 
 def _get_refs() -> tuple[str, list[str]]:
-    """레퍼런스 파일 경로를 반환한다. SOVITS_REF_AUDIO 고정 사용."""
+    """레퍼런스 파일 경로를 캐싱하여 반환한다.
+
+    SOVITS_REF_AUDIO의 상위 디렉터리에 wav 파일이 여러 개이면
+    첫 번째를 main, 나머지를 aux로 사용한다.
+    """
     global _ref_cache
     if _ref_cache is None:
-        _ref_cache = {"main": str(SOVITS_REF_AUDIO), "aux": []}
+        ref_dir = SOVITS_REF_AUDIO.parent
+        all_wavs = sorted(ref_dir.glob("*.wav")) if ref_dir.exists() else []
+        if all_wavs:
+            main = str(all_wavs[0])
+            aux = [str(f) for f in all_wavs[1:]]
+        else:
+            main = str(SOVITS_REF_AUDIO)
+            aux = []
+        _ref_cache = {"main": main, "aux": aux}
     return _ref_cache["main"], _ref_cache["aux"]
 
 
@@ -195,7 +207,7 @@ def synthesize_stream(text: str) -> requests.Response:
         "text_split_method": "cut0",
         "batch_size": 1,
         "media_type": "wav",
-        "streaming_mode": 2,
+        "streaming_mode": True,
     }
 
     logger.debug(
